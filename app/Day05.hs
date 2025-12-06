@@ -16,8 +16,9 @@ build s = (build_intervals s1, build_ids s2)
     [s1, s2] = splitOn "\n\n" s
 
 build_intervals :: String -> [(Int, Int)]
-build_intervals s = trace (show raw_intervals) normalize_intervals raw_intervals []
+build_intervals s = trace (show norm) norm
   where
+    norm = normalize_intervals raw_intervals []
     raw_intervals = map (make_interval) $ lines s
 
 make_interval :: String -> (Int, Int)
@@ -31,7 +32,12 @@ normalize_intervals (x:xs) l = normalize_intervals xs (add_interval x l)
 
 add_interval :: (Int, Int) -> [(Int, Int)] -> [(Int, Int)]
 add_interval interval [] = [interval]
-add_interval interval l = l ++ [interval]
+add_interval (a, b) ((c, d):xs)
+  | c <= a && b <= d = ((c,d):xs)
+  | a <= c && c <= b && b <= d = add_interval (a,d) xs
+  | c <= a && a <= d && d <= b = add_interval (c,b) xs
+  | a <= c && d <= b = add_interval (a,b) xs
+  | otherwise = [(c,d)] ++ add_interval (a,b) xs
 
 build_ids :: String -> [Int]
 build_ids = map (read) . lines
@@ -46,6 +52,4 @@ interval_in_list i ((a, b):xs)
   | otherwise = interval_in_list i xs
 
 resolve2 :: [(Int, Int)] -> Int
-resolve2 intervals = length [x | x <- [1..max_id], interval_in_list x intervals]
-  where
-    max_id = maximum $ map (\(_,b) -> b) intervals
+resolve2 = sum . map (\(a,b) -> b - a + 1)
